@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>OpenStreetMap avec Leaflet</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    #map { height: 100%; width: 100%; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    // Initialisation de la carte
+    const map = L.map('map').setView([48.8566, 2.3522], 13); // Centre sur Paris
+
+    // Ajout des tuiles OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Variables pour stocker les marqueurs et la polyline
+    let startMarker, endMarker, routePolyline;
+
+    // Fonction pour ajouter un marqueur
+    function addMarker(lat, lng, isStart) {
+      if (isStart) {
+        if (startMarker) map.removeLayer(startMarker);
+        startMarker = L.marker([lat, lng]).addTo(map);
+      } else {
+        if (endMarker) map.removeLayer(endMarker);
+        endMarker = L.marker([lat, lng]).addTo(map);
+      }
+    }
+
+    // Fonction pour afficher l'itinéraire
+    function showRoute(startLat, startLng, endLat, endLng) {
+      const url = `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?overview=full`;
+
+      fetch(url)
+        .then(response => response.json())
+        .then(data => {
+          if (routePolyline) map.removeLayer(routePolyline);
+          const coordinates = data.routes[0].geometry.coordinates;
+          const latLngs = coordinates.map(coord => [coord[1], coord[0]]);
+          routePolyline = L.polyline(latLngs, { color: 'blue' }).addTo(map);
+          map.fitBounds(routePolyline.getBounds());
+
+          // Afficher la distance
+          const distance = (data.routes[0].distance / 1000).toFixed(2);
+          alert(`Distance: ${distance} km`);
+        })
+        .catch(error => console.error('Erreur:', error));
+    }
+
+    // Exposer les fonctions à FlutterFlow
+    window.addMarker = addMarker;
+    window.showRoute = showRoute;
+  </script>
+</body>
+</html>
